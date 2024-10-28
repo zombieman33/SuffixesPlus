@@ -1,0 +1,17 @@
+database:
+  username: USERNAME
+  password: PASSWORD
+  url: jdbc:mysql://HOST:PORT/NAME
+
+suffix:
+  prefix: "suffix_"
+  link: "https://"
+  # %suffix% will be replaced with the suffix name
+  purchaseMessage:
+    - ""
+    - "<aqua>Click here to purchase the '%suffix%' suffix!"
+    - ""
+  purchaseHoverMessage: "<aqua>Click here to purchase the %suffix% suffix!"
+  
+player:
+  rankPlaceholder: "%vault_prefix%"
