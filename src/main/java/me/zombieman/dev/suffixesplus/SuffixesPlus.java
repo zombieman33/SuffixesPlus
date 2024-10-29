@@ -56,6 +56,10 @@ public final class SuffixesPlus extends JavaPlugin {
         } catch (SQLException e) {
             e.printStackTrace();
             getLogger().severe("Failed to connect to database! " + e.getMessage());
+            getLogger().severe("-----------------------------------------");
+            getLogger().severe("ERROR: Failed to connect to database");
+            getLogger().severe(this.getPluginMeta().getName() + " is now being disabled!");
+            getLogger().severe("-----------------------------------------");
             Bukkit.getPluginManager().disablePlugin(this);
         }
 
