@@ -211,8 +211,6 @@ public class GuiManager {
 
         formattedSuffix = formattedSuffix + " Suffix";
 
-        String permissionNode = "suffixsplus.suffix." + formattedSuffix.toLowerCase().replaceAll("[^a-zA-Z0-9]", "");
-
         // Set item name and enchant if owned
         Component displayName = MiniMessage.miniMessage().deserialize(ownsSuffix ? "<green><bold>" + formattedSuffix : "<red>" + formattedSuffix);
         meta.displayName(displayName);
@@ -237,10 +235,7 @@ public class GuiManager {
                 MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Preview: "),
                 ChatUtil.parseLegacyColors(rank + player.getName() + ChatColor.translateAlternateColorCodes('&', groupSuffixColor)), // Convert legacy codes for rank and suffix
                 Component.empty(),
-                MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Active: <bold>" + luckPermsHook.hasSuffix(player.getUniqueId(), suffix)),
-                player.hasPermission("suffixsplus.admin")
-                        ? MiniMessage.miniMessage().deserialize("<red><bold> | </bold>Permission: " + permissionNode)
-                        : Component.empty()
+                MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Active: <bold>" + luckPermsHook.hasSuffix(player.getUniqueId(), suffix))
         ));
 
         // Add NBT tag
