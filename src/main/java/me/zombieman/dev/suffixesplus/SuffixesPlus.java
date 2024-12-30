@@ -4,10 +4,12 @@ import me.zombieman.dev.suffixesplus.commands.SuffixCmd;
 import me.zombieman.dev.suffixesplus.commands.SuffixesCmd;
 import me.zombieman.dev.suffixesplus.databases.PlayerDatabase;
 import me.zombieman.dev.suffixesplus.databases.SuffixDatabase;
+import me.zombieman.dev.suffixesplus.databases.TempSuffixDatabase;
 import me.zombieman.dev.suffixesplus.hooks.LuckPermsHook;
 import me.zombieman.dev.suffixesplus.listeners.InventoryClickListener;
 import me.zombieman.dev.suffixesplus.listeners.PlayerListener;
 import me.zombieman.dev.suffixesplus.managers.GuiManager;
+import me.zombieman.dev.suffixesplus.api.LuckPermsAPI;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Bukkit;
@@ -20,7 +22,9 @@ public final class SuffixesPlus extends JavaPlugin {
     private LuckPermsHook luckPermsHook;
     private PlayerDatabase database;
     private SuffixDatabase suffixDatabase;
+    private TempSuffixDatabase tempSuffixDatabase;
     public GuiManager guiManager;
+    public LuckPermsAPI luckPermsAPI;
     @Override
     public void onEnable() {
         // Plugin startup logic
@@ -46,6 +50,8 @@ public final class SuffixesPlus extends JavaPlugin {
             return;
         }
 
+        luckPermsAPI = new LuckPermsAPI(this);
+
         String username = this.getConfig().getString("database.username");
         String password = this.getConfig().getString("database.password");
         String url = this.getConfig().getString("database.url");
@@ -53,6 +59,7 @@ public final class SuffixesPlus extends JavaPlugin {
         try {
             database = new PlayerDatabase(url, username, password);
             suffixDatabase = new SuffixDatabase(url, username, password);
+            tempSuffixDatabase = new TempSuffixDatabase(this, url, username, password, luckPermsAPI);
         } catch (SQLException e) {
             e.printStackTrace();
             getLogger().severe("Failed to connect to database! " + e.getMessage());
@@ -91,5 +98,8 @@ public final class SuffixesPlus extends JavaPlugin {
     }
     public SuffixDatabase getSuffixDatabase() {
         return suffixDatabase;
+    }
+    public TempSuffixDatabase getTempSuffixDatabase() {
+        return tempSuffixDatabase;
     }
 }

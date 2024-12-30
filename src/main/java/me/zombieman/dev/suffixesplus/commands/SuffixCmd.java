@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class SuffixCmd implements CommandExecutor, TabCompleter {
@@ -211,6 +212,137 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     player.sendMessage(miniMessage.deserialize("<#7289da><strikethrough>                                         </strikethrough>"));
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
                     return true;
+
+                case "addtempsuffix":
+                    if (args.length < 4) {
+                        player.sendMessage(ChatColor.YELLOW + "Usage: /suffix addtempsuffix <player> <suffix> <time>");
+                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                        return false;
+                    }
+
+                    String targetPlayerName = args[1];
+                    String tempSuffix = args[2];
+                    String time = args[3];
+
+                    UUID uuid;
+                    try {
+                        if (!plugin.getDatabase().getAllUsernames().contains(targetPlayerName)) {
+                            player.sendMessage(ChatColor.RED + "Player not found!");
+                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                            return false;
+                        } else {
+                            uuid = UUID.fromString(plugin.getDatabase().getUuidByUsername(targetPlayerName));
+                        }
+                    } catch (SQLException e) {
+                        System.err.println("Error connecting to database: " + e.getMessage());
+                        player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
+                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                        return false;
+                    }
+
+                    try {
+
+
+                        if (plugin.getLuckPermsHook().getPlayerSuffixes(uuid).contains(configSuffix + tempSuffix.replace(configSuffix, ""))) {
+                            player.sendMessage(ChatColor.RED + targetPlayerName + " already this suffix!");
+                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                            return false;
+                        }
+
+
+                        if (!plugin.getTempSuffixDatabase().getActiveSuffixes(uuid).isEmpty()) {
+                            player.sendMessage(ChatColor.RED + targetPlayerName + " already has a temp suffix!");
+                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                            return false;
+                        }
+
+                        if (parseTime(time, player) == -1) {
+                            return false;
+                        }
+
+                        plugin.getTempSuffixDatabase().addTempSuffix(uuid, tempSuffix, parseTime(time, player));
+                        player.sendMessage(ChatColor.GREEN + "Successfully added temporary suffix " + tempSuffix + " to " + targetPlayerName + ".");
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
+                    } catch (SQLException e) {
+                        player.sendMessage(ChatColor.RED + "Error connecting to the database. Please try again later.");
+                        throw new RuntimeException(e);
+                    }
+                    return true;
+
+                case "removetempsuffix":
+                    if (args.length < 2) {
+                        player.sendMessage(ChatColor.YELLOW + "Usage: /suffix removetempsuffix <player>");
+                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                        return false;
+                    }
+
+                    targetPlayerName = args[1];
+
+                    try {
+                        if (!plugin.getDatabase().getAllUsernames().contains(targetPlayerName)) {
+                            player.sendMessage(ChatColor.RED + "Player not found!");
+                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                            return false;
+                        } else {
+                            uuid = UUID.fromString(plugin.getDatabase().getUuidByUsername(targetPlayerName));
+                        }
+                    } catch (SQLException e) {
+                        System.err.println("Error connecting to database: " + e.getMessage());
+                        player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
+                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                        return false;
+                    }
+
+
+
+                    try {
+                        if (plugin.getTempSuffixDatabase().getActiveSuffixes(uuid).isEmpty()) {
+                            player.sendMessage(ChatColor.RED + "Temporary suffix not found for this player.");
+                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                            return false;
+                        }
+
+                        plugin.getTempSuffixDatabase().removeTempSuffix(uuid);
+                        player.sendMessage(ChatColor.GREEN + "Successfully removed temporary suffix " + plugin.getTempSuffixDatabase().getActiveSuffixes(uuid).get(0) + " from " + targetPlayerName + ".");
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
+
+                    } catch (SQLException e) {
+                        player.sendMessage(ChatColor.RED + "Error connecting to the database. Please try again later.");
+                        throw new RuntimeException(e);
+                    }
+                    return true;
+
+                case "checktempsuffix":
+
+                    targetPlayerName = args[1];
+
+                    List<String> activeSuffixes = null;
+                    try {
+                        if (!plugin.getDatabase().getAllUsernames().contains(targetPlayerName)) {
+                            player.sendMessage(ChatColor.RED + "Player not found!");
+                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                            return false;
+                        } else {
+                            uuid = UUID.fromString(plugin.getDatabase().getUuidByUsername(targetPlayerName));
+                            activeSuffixes = plugin.getTempSuffixDatabase().getActiveSuffixes(uuid);
+                        }
+                    } catch (SQLException e) {
+                        System.err.println("Error connecting to database: " + e.getMessage());
+                        player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
+                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                        return false;
+                    }
+
+                    if (activeSuffixes.isEmpty()) {
+                        player.sendMessage(ChatColor.RED + targetPlayerName + " doesn't have any active temporary suffixes.");
+                    } else {
+                        player.sendMessage(ChatColor.GREEN + targetPlayerName + "'s active temporary suffix: " + String.join(", ", activeSuffixes));
+                    }
+                    return true;
+
+                default:
+                    player.sendMessage("Unknown subcommand. Usage: /tempsuffix <add|remove|check> <suffix> [duration (in seconds)]");
+                    return false;
             }
         }
 
@@ -233,6 +365,9 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                 completions.add("help");
                 completions.add("info");
                 completions.add("support");
+                completions.add("addtempsuffix");
+                completions.add("checktempsuffix");
+                completions.add("removetempsuffix");
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("add")) {
                     for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
@@ -256,6 +391,30 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
                         completions.add(suffix.replace("suffix_", ""));
                     }
+                } else if (args[0].equalsIgnoreCase("addtempsuffix") || args[0].equalsIgnoreCase("removetempsuffix") || args[0].equalsIgnoreCase("checktempsuffix")) {
+                    try {
+                        completions.addAll(plugin.getDatabase().getAllUsernames());
+                    } catch (SQLException e) {
+                        completions.add("Error connecting to database!");
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else if (args.length == 3) {
+                if (args[0].equalsIgnoreCase("addtempsuffix")) {
+                    for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
+                        try {
+                            if (!plugin.getSuffixDatabase().getAllSuffixes().contains(suffix)) {
+                                completions.add(suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), ""));
+                            }
+                        } catch (SQLException e) {
+                            completions.add("Error connecting to database!");
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            } else if (args.length == 4) {
+                if (args[0].equalsIgnoreCase("addtempsuffix")) {
+                    completions.add("<time>");
                 }
             }
         }
@@ -263,4 +422,52 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
         String lastArg = args[args.length - 1];
         return completions.stream().filter(s -> s.startsWith(lastArg)).collect(Collectors.toList());
     }
+
+    public static long parseTime(String timeStr, Player player) {
+        long timeInMillis = 0;
+        timeStr = timeStr.toLowerCase();
+
+        // Check if the time string contains 's' or any seconds-related word
+        if (timeStr.endsWith("s") || timeStr.endsWith("sec") || timeStr.endsWith("second") || timeStr.endsWith("seconds")) {
+            player.sendMessage(ChatColor.RED + "You cannot use seconds. Please use a larger time unit (e.g., minutes, hours).");
+            return -1;
+        }
+
+        // Check for minutes
+        if (timeStr.endsWith("m") || timeStr.endsWith("min") || timeStr.endsWith("minute") || timeStr.endsWith("minutes")) {
+            String num = timeStr.replaceAll("[^0-9]", "");
+            timeInMillis = Integer.parseInt(num) * 60 * 1000L;
+        }
+        // Check for hours
+        else if (timeStr.endsWith("h") || timeStr.endsWith("hour") || timeStr.endsWith("hours")) {
+            String num = timeStr.replaceAll("[^0-9]", "");
+            timeInMillis = Integer.parseInt(num) * 60 * 60 * 1000L;
+        }
+        // Check for days
+        else if (timeStr.endsWith("d") || timeStr.endsWith("day") || timeStr.endsWith("days")) {
+            String num = timeStr.replaceAll("[^0-9]", "");
+            timeInMillis = Integer.parseInt(num) * 24 * 60 * 60 * 1000L;
+        }
+        // Check for weeks
+        else if (timeStr.endsWith("w") || timeStr.endsWith("week") || timeStr.endsWith("weeks")) {
+            String num = timeStr.replaceAll("[^0-9]", "");
+            timeInMillis = Integer.parseInt(num) * 7 * 24 * 60 * 60 * 1000L;
+        }
+        // Check for months (approx 30 days)
+        else if (timeStr.endsWith("mo") || timeStr.endsWith("month") || timeStr.endsWith("months")) {
+            String num = timeStr.replaceAll("[^0-9]", "");
+            timeInMillis = Integer.parseInt(num) * 30 * 24 * 60 * 60 * 1000L;
+        }
+        // Check for years
+        else if (timeStr.endsWith("y") || timeStr.endsWith("year") || timeStr.endsWith("years")) {
+            String num = timeStr.replaceAll("[^0-9]", "");
+            timeInMillis = Integer.parseInt(num) * 365 * 24 * 60 * 60 * 1000L;
+        } else {
+            player.sendMessage(ChatColor.RED + "Invalid time format. Please use minutes (m), hours (h), days (d), weeks (w), months (mo), or years (y).");
+            return -1;
+        }
+
+        return timeInMillis;
+    }
+
 }

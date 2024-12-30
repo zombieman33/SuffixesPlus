@@ -75,13 +75,11 @@ public class PlayerDatabase {
         return playerData;
     }
     public String getUuidByUsername(String username) throws SQLException {
-        // Query for a player by username
         PlayerData playerData = suffixDataStringDao.queryBuilder()
                 .where()
                 .eq("username", username)
                 .queryForFirst();
 
-        // If suffixData is null, that means no player was found with the given username
         if (playerData != null) {
             return playerData.getUuid();
         } else {
