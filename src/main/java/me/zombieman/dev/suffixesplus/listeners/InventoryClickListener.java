@@ -81,10 +81,55 @@ public class InventoryClickListener implements Listener {
                 handleSuffixSelection(player, itemMeta);
                 break;
             case "next":
-                plugin.guiManager.openSuffixGui(player, currentPage + 1);
+                try {
+                    plugin.guiManager.openSuffixGui(player, currentPage + 1);
+                } catch (SQLException e) {
+                    player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
+                    System.err.println("Error connecting to database: " + e.getMessage());
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f ,1.0f);
+                    return;
+                }
             case "previous":
-                plugin.guiManager.openSuffixGui(player, currentPage - 1);
+                try {
+                    plugin.guiManager.openSuffixGui(player, currentPage - 1);
+                } catch (SQLException e) {
+                    player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
+                    System.err.println("Error connecting to database: " + e.getMessage());
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                    return;
+                }
+            case "preview_anvil":
+                try {
 
+                    String currentSuffixFromDB = plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName()).getCurrentSuffix();
+
+                    if (currentSuffixFromDB == null || currentSuffixFromDB.equalsIgnoreCase("n/a")) {
+                        player.sendMessage(ChatColor.RED + "You need to equip a suffix first!");
+                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO ,1.0f, 1.0f);
+                        return;
+                    }
+
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("<aqua>Preview:"));
+                    player.sendMessage("");
+
+                    currentSuffixFromDB = plugin.getConfig().getString("suffix.prefix", "suffix_") + currentSuffixFromDB.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
+
+                    String currentSuffix = ChatColor.translateAlternateColorCodes('&', luckPermsHook.getGroupSuffixColor(currentSuffixFromDB));
+
+                    player.sendMessage(ChatUtil.parseLegacyColors(PlaceholderAPI.setPlaceholders(player, plugin.getConfig().getString("player.rankPlaceholder", "%vault_prefix%")).replace(plugin.getConfig().getString("player.rankPlaceholder", "%vault_prefix%"), "&7") + player.getName() + currentSuffix));
+                    player.sendMessage("");
+                    player.sendMessage(ChatUtil.parseLegacyColors(currentSuffix));
+
+                    player.sendMessage("");
+
+                    player.closeInventory();
+
+                } catch (SQLException e) {
+                    player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
+                    System.err.println("Error connecting to database: " + e.getMessage());
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                    return;
+                }
             default:
                 break;
         }

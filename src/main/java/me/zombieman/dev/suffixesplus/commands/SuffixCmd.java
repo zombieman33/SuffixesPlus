@@ -346,8 +346,14 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
             }
         }
 
-        plugin.guiManager.openSuffixGui(player, 0);
-
+        try {
+            plugin.guiManager.openSuffixGui(player, 0);
+        } catch (SQLException e) {
+            player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
+            System.err.println("Error connecting to database: " + e.getMessage());
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f ,1.0f);
+            return false;
+        }
         return false;
     }
 

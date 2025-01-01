@@ -29,7 +29,7 @@ public class GuiManager {
     }
     private final Map<UUID, Integer> playerPages = new HashMap<>();
 
-    public void openSuffixGui(Player player, int page) {
+    public void openSuffixGui(Player player, int page) throws SQLException {
         List<String> allSuffixes = luckPermsHook.getAllSuffixes();
 
         if (allSuffixes.isEmpty()) {
@@ -73,6 +73,7 @@ public class GuiManager {
         ItemStack infoButton = createInfoButton();
         gui.setItem(39, infoButton);
 
+
         // Add suffix items for the current page
         List<ItemStack> ownedSuffixes = new ArrayList<>();
         List<ItemStack> notOwnedSuffixes = new ArrayList<>();
@@ -114,6 +115,17 @@ public class GuiManager {
             ItemStack nextButton = createNavigationButton("Next", Material.ARROW);
             gui.setItem(44, nextButton);
             gui.setItem(43, playerHead);
+        }
+
+        int slot = 36;
+
+        if (page > 0) {
+            slot = 37;
+        }
+
+        if (player.hasPermission("suffixsplus.gui.preview")) {
+            ItemStack preview = createPreview(player);
+            gui.setItem(slot, preview);
         }
 
         if (page > 0) {
@@ -171,6 +183,32 @@ public class GuiManager {
         meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "guiItem"), PersistentDataType.STRING, "playerHead");
         playerHead.setItemMeta(meta);
         return playerHead;
+    }
+
+    private ItemStack createPreview(Player player) throws SQLException {
+        // Create the player's head item
+        ItemStack anvil = new ItemStack(Material.ANVIL);
+        ItemMeta meta = anvil.getItemMeta();
+
+        Component currentSuffix = ChatUtil.parseLegacyColors("&b&l | &bCurrent Suffix: &an/a");
+        String currentSuffixFromDB = plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName()).getCurrentSuffix();
+
+        currentSuffixFromDB = plugin.getConfig().getString("suffix.prefix", "suffix_") + currentSuffixFromDB.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
+
+        if (currentSuffixFromDB != null && luckPermsHook.getGroupSuffixColor(currentSuffixFromDB) != null) {
+            currentSuffix = ChatUtil.parseLegacyColors("&b&l | &bCurrent Suffix:" + ChatColor.translateAlternateColorCodes('&', luckPermsHook.getGroupSuffixColor(currentSuffixFromDB)));
+        }
+
+        meta.displayName(ChatUtil.parseLegacyColors(PlaceholderAPI.setPlaceholders(player, plugin.getConfig().getString("player.rankPlaceholder", "%vault_prefix%")).replace(plugin.getConfig().getString("player.rankPlaceholder", "%vault_prefix%"), "&7") + player.getName()));
+        meta.lore(List.of(
+                Component.empty(),
+                MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Click to preview your suffix!"),
+                currentSuffix,
+                Component.empty()
+        ));
+        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "guiItem"), PersistentDataType.STRING, "preview_anvil");
+        anvil.setItemMeta(meta);
+        return anvil;
     }
 
     private ItemStack createClearAllButton() {
