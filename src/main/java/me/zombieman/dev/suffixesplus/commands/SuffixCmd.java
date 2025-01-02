@@ -213,133 +213,6 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
                     return true;
 
-                case "addtempsuffix":
-                    if (args.length < 4) {
-                        player.sendMessage(ChatColor.YELLOW + "Usage: /suffix addtempsuffix <player> <suffix> <time>");
-                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                        return false;
-                    }
-
-                    String targetPlayerName = args[1];
-                    String tempSuffix = args[2];
-                    String time = args[3];
-
-                    UUID uuid;
-                    try {
-                        if (!plugin.getDatabase().getAllUsernames().contains(targetPlayerName)) {
-                            player.sendMessage(ChatColor.RED + "Player not found!");
-                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                            return false;
-                        } else {
-                            uuid = UUID.fromString(plugin.getDatabase().getUuidByUsername(targetPlayerName));
-                        }
-                    } catch (SQLException e) {
-                        System.err.println("Error connecting to database: " + e.getMessage());
-                        player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
-                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                        return false;
-                    }
-
-                    try {
-
-
-                        if (plugin.getLuckPermsHook().getPlayerSuffixes(uuid).contains(configSuffix + tempSuffix.replace(configSuffix, ""))) {
-                            player.sendMessage(ChatColor.RED + targetPlayerName + " already this suffix!");
-                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                            return false;
-                        }
-
-
-                        if (!plugin.getTempSuffixDatabase().getActiveSuffixes(uuid).isEmpty()) {
-                            player.sendMessage(ChatColor.RED + targetPlayerName + " already has a temp suffix!");
-                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                            return false;
-                        }
-
-                        if (parseTime(time, player) == -1) {
-                            return false;
-                        }
-
-                        plugin.getTempSuffixDatabase().addTempSuffix(uuid, tempSuffix, parseTime(time, player));
-                        player.sendMessage(ChatColor.GREEN + "Successfully added temporary suffix " + tempSuffix + " to " + targetPlayerName + ".");
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
-                    } catch (SQLException e) {
-                        player.sendMessage(ChatColor.RED + "Error connecting to the database. Please try again later.");
-                        throw new RuntimeException(e);
-                    }
-                    return true;
-
-                case "removetempsuffix":
-                    if (args.length < 2) {
-                        player.sendMessage(ChatColor.YELLOW + "Usage: /suffix removetempsuffix <player>");
-                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                        return false;
-                    }
-
-                    targetPlayerName = args[1];
-
-                    try {
-                        if (!plugin.getDatabase().getAllUsernames().contains(targetPlayerName)) {
-                            player.sendMessage(ChatColor.RED + "Player not found!");
-                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                            return false;
-                        } else {
-                            uuid = UUID.fromString(plugin.getDatabase().getUuidByUsername(targetPlayerName));
-                        }
-                    } catch (SQLException e) {
-                        System.err.println("Error connecting to database: " + e.getMessage());
-                        player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
-                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                        return false;
-                    }
-
-
-
-                    try {
-                        if (plugin.getTempSuffixDatabase().getActiveSuffixes(uuid).isEmpty()) {
-                            player.sendMessage(ChatColor.RED + "Temporary suffix not found for this player.");
-                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                            return false;
-                        }
-
-                        plugin.getTempSuffixDatabase().removeTempSuffix(uuid);
-                        player.sendMessage(ChatColor.GREEN + "Successfully removed temporary suffix " + plugin.getTempSuffixDatabase().getActiveSuffixes(uuid).get(0) + " from " + targetPlayerName + ".");
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
-
-                    } catch (SQLException e) {
-                        player.sendMessage(ChatColor.RED + "Error connecting to the database. Please try again later.");
-                        throw new RuntimeException(e);
-                    }
-                    return true;
-
-                case "checktempsuffix":
-
-                    targetPlayerName = args[1];
-
-                    List<String> activeSuffixes = null;
-                    try {
-                        if (!plugin.getDatabase().getAllUsernames().contains(targetPlayerName)) {
-                            player.sendMessage(ChatColor.RED + "Player not found!");
-                            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                            return false;
-                        } else {
-                            uuid = UUID.fromString(plugin.getDatabase().getUuidByUsername(targetPlayerName));
-                            activeSuffixes = plugin.getTempSuffixDatabase().getActiveSuffixes(uuid);
-                        }
-                    } catch (SQLException e) {
-                        System.err.println("Error connecting to database: " + e.getMessage());
-                        player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
-                        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                        return false;
-                    }
-
-                    if (activeSuffixes.isEmpty()) {
-                        player.sendMessage(ChatColor.RED + targetPlayerName + " doesn't have any active temporary suffixes.");
-                    } else {
-                        player.sendMessage(ChatColor.GREEN + targetPlayerName + "'s active temporary suffix: " + String.join(", ", activeSuffixes));
-                    }
-                    return true;
-
                 default:
                     player.sendMessage("Unknown subcommand. Usage: /tempsuffix <add|remove|check> <suffix> [duration (in seconds)]");
                     return false;
@@ -371,9 +244,6 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                 completions.add("help");
                 completions.add("info");
                 completions.add("support");
-                completions.add("addtempsuffix");
-                completions.add("checktempsuffix");
-                completions.add("removetempsuffix");
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("add")) {
                     for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
@@ -397,30 +267,6 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
                         completions.add(suffix.replace("suffix_", ""));
                     }
-                } else if (args[0].equalsIgnoreCase("addtempsuffix") || args[0].equalsIgnoreCase("removetempsuffix") || args[0].equalsIgnoreCase("checktempsuffix")) {
-                    try {
-                        completions.addAll(plugin.getDatabase().getAllUsernames());
-                    } catch (SQLException e) {
-                        completions.add("Error connecting to database!");
-                        throw new RuntimeException(e);
-                    }
-                }
-            } else if (args.length == 3) {
-                if (args[0].equalsIgnoreCase("addtempsuffix")) {
-                    for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
-                        try {
-                            if (!plugin.getSuffixDatabase().getAllSuffixes().contains(suffix)) {
-                                completions.add(suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), ""));
-                            }
-                        } catch (SQLException e) {
-                            completions.add("Error connecting to database!");
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            } else if (args.length == 4) {
-                if (args[0].equalsIgnoreCase("addtempsuffix")) {
-                    completions.add("<time>");
                 }
             }
         }

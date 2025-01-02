@@ -4,7 +4,7 @@ import me.zombieman.dev.suffixesplus.commands.SuffixCmd;
 import me.zombieman.dev.suffixesplus.commands.SuffixesCmd;
 import me.zombieman.dev.suffixesplus.databases.PlayerDatabase;
 import me.zombieman.dev.suffixesplus.databases.SuffixDatabase;
-import me.zombieman.dev.suffixesplus.databases.TempSuffixDatabase;
+import me.zombieman.dev.suffixesplus.managers.TempSuffixManager;
 import me.zombieman.dev.suffixesplus.hooks.LuckPermsHook;
 import me.zombieman.dev.suffixesplus.listeners.InventoryClickListener;
 import me.zombieman.dev.suffixesplus.listeners.PlayerListener;
@@ -22,7 +22,7 @@ public final class SuffixesPlus extends JavaPlugin {
     private LuckPermsHook luckPermsHook;
     private PlayerDatabase database;
     private SuffixDatabase suffixDatabase;
-    private TempSuffixDatabase tempSuffixDatabase;
+    private TempSuffixManager tempSuffixManager;
     public GuiManager guiManager;
     public LuckPermsAPI luckPermsAPI;
     @Override
@@ -59,7 +59,6 @@ public final class SuffixesPlus extends JavaPlugin {
         try {
             database = new PlayerDatabase(url, username, password);
             suffixDatabase = new SuffixDatabase(url, username, password);
-            tempSuffixDatabase = new TempSuffixDatabase(this, url, username, password, luckPermsAPI);
         } catch (SQLException e) {
             e.printStackTrace();
             getLogger().severe("Failed to connect to database! " + e.getMessage());
@@ -74,6 +73,7 @@ public final class SuffixesPlus extends JavaPlugin {
         luckPermsHook = new LuckPermsHook(this, luckPerms);
 
         guiManager = new GuiManager(this, luckPermsHook);
+        tempSuffixManager = new TempSuffixManager(this);
 
         new PlayerListener(this);
         new InventoryClickListener(this, luckPermsHook);
@@ -98,8 +98,5 @@ public final class SuffixesPlus extends JavaPlugin {
     }
     public SuffixDatabase getSuffixDatabase() {
         return suffixDatabase;
-    }
-    public TempSuffixDatabase getTempSuffixDatabase() {
-        return tempSuffixDatabase;
     }
 }

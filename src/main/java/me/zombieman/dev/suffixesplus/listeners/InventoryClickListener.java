@@ -112,6 +112,7 @@ public class InventoryClickListener implements Listener {
                     player.sendMessage(MiniMessage.miniMessage().deserialize("<aqua>Preview:"));
                     player.sendMessage("");
 
+
                     currentSuffixFromDB = plugin.getConfig().getString("suffix.prefix", "suffix_") + currentSuffixFromDB.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
 
                     String currentSuffix = ChatColor.translateAlternateColorCodes('&', luckPermsHook.getGroupSuffixColor(currentSuffixFromDB));

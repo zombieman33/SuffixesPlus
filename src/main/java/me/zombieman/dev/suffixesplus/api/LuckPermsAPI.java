@@ -1,74 +1,49 @@
 package me.zombieman.dev.suffixesplus.api;
 
 import me.zombieman.dev.suffixesplus.SuffixesPlus;
-import net.luckperms.api.LuckPerms;
-import net.luckperms.api.LuckPermsProvider;
-import net.luckperms.api.model.user.User;
-import net.luckperms.api.node.Node;
-import net.luckperms.api.node.types.InheritanceNode;
-import net.luckperms.api.node.types.PermissionNode;
+import org.bukkit.Bukkit;
+import org.bukkit.command.ConsoleCommandSender;
 
-import java.time.Duration;
 import java.util.UUID;
 
 public class LuckPermsAPI {
 
-    private final LuckPerms luckPerms;
     private final SuffixesPlus plugin;
 
     public LuckPermsAPI(SuffixesPlus plugin) {
         this.plugin = plugin;
-        this.luckPerms = LuckPermsProvider.get();
     }
 
     public void addTempPermission(UUID uuid, String permission) {
-        User user = luckPerms.getUserManager().getUser(uuid);
-        if (user != null) {
-            Node node = PermissionNode.builder(permission)
-                    .value(true)
-                    .build();
-
-            user.data().add(node);
-            luckPerms.getUserManager().saveUser(user);
-        }
+        String command = String.format("lp user %s permission set %s true", uuid, permission);
+        executeCommand(command);
     }
 
     public void removeParent(UUID uuid, String parentGroup) {
-        User user = luckPerms.getUserManager().getUser(uuid);
-        if (user != null) {
+        String suffix = plugin.getConfig().getString("suffix.prefix", "suffix_");
+        parentGroup = parentGroup.replace(suffix, "");
+        parentGroup = suffix + parentGroup;
 
-            String suffix = plugin.getConfig().getString("suffix.prefix", "suffix_");
-            parentGroup = parentGroup.replace(suffix, "");
-
-            parentGroup = suffix + parentGroup;
-
-            Node node = InheritanceNode.builder(parentGroup).build();
-            user.data().remove(node);
-            luckPerms.getUserManager().saveUser(user);
-        }
+        String command = String.format("lp user %s parent remove %s", uuid, parentGroup);
+        executeCommand(command);
     }
 
     public void addParent(UUID uuid, String parentGroup) {
-        User user = luckPerms.getUserManager().getUser(uuid);
-        if (user != null) {
+        String suffix = plugin.getConfig().getString("suffix.prefix", "suffix_");
+        parentGroup = parentGroup.replace(suffix, "");
+        parentGroup = suffix + parentGroup;
 
-            String suffix = plugin.getConfig().getString("suffix.prefix", "suffix_");
-            parentGroup = parentGroup.replace(suffix, "");
-
-            parentGroup = suffix + parentGroup;
-
-            Node node = InheritanceNode.builder(parentGroup).build();
-            user.data().add(node);
-            luckPerms.getUserManager().saveUser(user);
-        }
+        String command = String.format("lp user %s parent add %s", uuid, parentGroup);
+        executeCommand(command);
     }
 
     public void removePermission(UUID uuid, String permission) {
-        User user = luckPerms.getUserManager().getUser(uuid);
-        if (user != null) {
-            Node node = PermissionNode.builder(permission).value(true).build();
-            user.data().remove(node);
-            luckPerms.getUserManager().saveUser(user);
-        }
+        String command = String.format("lp user %s permission unset %s", uuid, permission);
+        executeCommand(command);
+    }
+
+    private void executeCommand(String command) {
+        ConsoleCommandSender console = Bukkit.getConsoleSender();
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(console, command));
     }
 }

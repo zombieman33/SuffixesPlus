@@ -35,7 +35,6 @@ public class PlayerDatabase {
         }
     }
 
-
     public void updateUsername(OfflinePlayer offlinePlayer, String username) throws SQLException {
         String uuid = offlinePlayer.getUniqueId().toString();
         PlayerData playerData = suffixDataStringDao.queryForId(uuid);
