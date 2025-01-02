@@ -1,6 +1,7 @@
 package me.zombieman.dev.suffixesplus.listeners;
 
 import me.zombieman.dev.suffixesplus.SuffixesPlus;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,11 +24,17 @@ public class PlayerListener implements Listener {
 
         Player player = event.getPlayer();
 
-        try {
-            plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName());
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+
+            try {
+                plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName());
+                if (!plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName()).getUsername().equalsIgnoreCase(player.getName())) {
+                    plugin.getDatabase().updateUsername(player, player.getName());
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
 
     }
 }
