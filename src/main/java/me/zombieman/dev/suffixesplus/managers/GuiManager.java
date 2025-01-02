@@ -240,7 +240,7 @@ public class GuiManager {
 
 
     private ItemStack createSuffixItem(String suffix, boolean ownsSuffix, Player player) {
-        ItemStack suffixItem = new ItemStack(Material.NAME_TAG);
+        ItemStack suffixItem = new ItemStack(Material.PAPER);
         ItemMeta meta = suffixItem.getItemMeta();
         String formattedSuffix = suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
         if (!formattedSuffix.isEmpty()) {
@@ -254,7 +254,7 @@ public class GuiManager {
         meta.displayName(displayName);
 
         if (ownsSuffix) {
-            // Add enchantment to show that the player owns this suffix
+            suffixItem = new ItemStack(Material.NAME_TAG);
             meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
