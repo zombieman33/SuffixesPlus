@@ -26,6 +26,8 @@ public class TempSuffixManager {
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         String currentSuffix = plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName()).getCurrentSuffix();
 
+                        if (currentSuffix.equalsIgnoreCase("n/a")) continue;
+
                         if (!player.hasPermission("suffixsplus.suffix." + currentSuffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), ""))) {
                             Bukkit.getScheduler().runTask(plugin, () -> {
                                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getUniqueId() + " parent remove " + currentSuffix);
