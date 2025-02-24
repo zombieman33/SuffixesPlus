@@ -10,9 +10,15 @@ import me.zombieman.dev.suffixesplus.listeners.InventoryClickListener;
 import me.zombieman.dev.suffixesplus.listeners.PlayerListener;
 import me.zombieman.dev.suffixesplus.managers.GuiManager;
 import me.zombieman.dev.suffixesplus.api.LuckPermsAPI;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.sql.SQLException;
@@ -80,6 +86,8 @@ public final class SuffixesPlus extends JavaPlugin {
 
         getCommand("suffix").setExecutor(new SuffixCmd(this));
         getCommand("suffixes").setExecutor(new SuffixesCmd(this));
+
+        checkIfPlayerHasSuffix();
     }
 
     @Override
@@ -99,4 +107,50 @@ public final class SuffixesPlus extends JavaPlugin {
     public SuffixDatabase getSuffixDatabase() {
         return suffixDatabase;
     }
+
+    public void checkIfPlayerHasSuffix() {
+
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            try {
+                int onlinePlayers = Bukkit.getOnlinePlayers().size();
+
+                if (onlinePlayers == 0) return;
+
+                for (Player player : Bukkit.getOnlinePlayers()) {
+
+                    String currentSuffix = getDatabase().getPlayer(player.getUniqueId(), player.getName()).getCurrentSuffix();
+
+                    if (!currentSuffix.equalsIgnoreCase("n/a")) continue;
+
+                    int ownedSuffixes = 0;
+
+                    for (String suffix : getLuckPermsHook().getAllSuffixes()) {
+                        suffix = suffix.replace(getConfig().getString("suffix.prefix", "suffix_"), "");
+                        boolean hasPermission = player.hasPermission("suffixsplus.suffix." + suffix);
+
+                        if (hasPermission) ownedSuffixes++;
+                    }
+
+                    if (ownedSuffixes == 0) continue;
+
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("""
+                                <green><strikethrough>                                             </strikethrough>
+                                <green>🌟 Remember to use your suffixes! 🌟
+                                <green>You can choose from %ownedSuffixes% suffixes.
+                                <green>/suffix (CLICK ME)
+                                <green><strikethrough>                                             </strikethrough>"""
+                                    .replace("%ownedSuffixes%", String.valueOf(ownedSuffixes)))
+                            .hoverEvent(HoverEvent.showText(MiniMessage.miniMessage().deserialize("<green>Click to view suffixes")))
+                            .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/suffix")));
+
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
+                }
+            } catch (SQLException e) {
+                System.err.println("There was an error connecting to the database: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, 0L, 20L * 60 * 20);
+    }
+
+
 }
