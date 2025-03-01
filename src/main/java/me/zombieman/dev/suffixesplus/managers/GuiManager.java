@@ -264,6 +264,15 @@ public class GuiManager {
 
         String groupSuffixColor = luckPermsHook.getGroupSuffixColor(suffix);
 
+        boolean isPurchasable = true;
+
+        try {
+            List<String> allSuffixes = plugin.getSuffixDatabase().getAllSuffixes();
+            if (allSuffixes.contains(suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "").toLowerCase())) isPurchasable = false;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         // Set the lore using parsed legacy color codes
         meta.lore(List.of(
                 Component.empty(),
@@ -273,7 +282,9 @@ public class GuiManager {
                 MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Preview: "),
                 ChatUtil.parseLegacyColors(rank + player.getName() + ChatColor.translateAlternateColorCodes('&', groupSuffixColor)), // Convert legacy codes for rank and suffix
                 Component.empty(),
-                MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Active: <bold>" + luckPermsHook.hasSuffix(player.getUniqueId(), suffix))
+                MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Active: <bold>" + luckPermsHook.hasSuffix(player.getUniqueId(), suffix)),
+                MiniMessage.miniMessage().deserialize("<aqua><bold> | </bold>Purchasable: <bold>" + isPurchasable)
+
         ));
 
         // Add NBT tag
