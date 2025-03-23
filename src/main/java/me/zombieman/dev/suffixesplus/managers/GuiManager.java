@@ -101,7 +101,7 @@ public class GuiManager {
         int endIndex = Math.min(startIndex + suffixesPerPage, allSuffixItems.size());
 
         if (startIndex < 0 || startIndex >= allSuffixItems.size()) {
-            return; // Prevents IndexOutOfBoundsException
+            return;
         }
 
         int guiSize = gui.getSize(); // Assumes gui.getSize() gives the total number of slots
@@ -110,7 +110,6 @@ public class GuiManager {
         }
 
 
-        // Add "Next" and "Previous" buttons
         if (page < maxPage - 1) {
             ItemStack nextButton = createNavigationButton("Next", Material.ARROW);
             gui.setItem(44, nextButton);

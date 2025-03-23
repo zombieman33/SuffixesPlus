@@ -6,7 +6,7 @@
 
   <groupId>me.zombieman.dev</groupId>
   <artifactId>SuffixesPlus</artifactId>
-  <version>1.4.0</version>
+  <version>1.4.1</version>
   <packaging>jar</packaging>
 
   <name>SuffixesPlus</name>
@@ -59,8 +59,8 @@
           <url>https://oss.sonatype.org/content/groups/public/</url>
       </repository>
       <repository>
-          <id>placeholderapi</id>
-          <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+          <id>jitpack.io</id>
+          <url>https://jitpack.io</url>
       </repository>
   </repositories>
 
@@ -83,9 +83,9 @@
           <version>6.1</version>
       </dependency>
       <dependency>
-          <groupId>me.clip</groupId>
-          <artifactId>placeholderapi</artifactId>
-          <version>2.11.2</version>
+          <groupId>com.github.PlaceholderAPI</groupId>
+          <artifactId>PlaceholderAPI</artifactId>
+          <version>2.11.3</version>
           <scope>provided</scope>
       </dependency>
   </dependencies>

@@ -51,6 +51,10 @@ public class InventoryClickListener implements Listener {
         event.setCancelled(true);
 
         int currentPage = plugin.guiManager.getCurrentPage(player);
+
+        System.out.println("Current page: " + currentPage);
+        System.out.println("Gui action: " + guiAction);
+
         switch (guiAction) {
             case "playerHead":
                 break;
@@ -83,6 +87,7 @@ public class InventoryClickListener implements Listener {
             case "next":
                 try {
                     plugin.guiManager.openSuffixGui(player, currentPage + 1);
+                    break;
                 } catch (SQLException e) {
                     player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
                     System.err.println("Error connecting to database: " + e.getMessage());
@@ -92,6 +97,7 @@ public class InventoryClickListener implements Listener {
             case "previous":
                 try {
                     plugin.guiManager.openSuffixGui(player, currentPage - 1);
+                    break;
                 } catch (SQLException e) {
                     player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
                     System.err.println("Error connecting to database: " + e.getMessage());
@@ -124,6 +130,7 @@ public class InventoryClickListener implements Listener {
                     player.sendMessage("");
 
                     player.closeInventory();
+                    break;
 
                 } catch (SQLException e) {
                     player.sendMessage(ChatColor.RED + "There was an error while connecting to database. Please try again later.");
