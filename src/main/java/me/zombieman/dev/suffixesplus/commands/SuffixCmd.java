@@ -5,6 +5,7 @@ import me.zombieman.dev.suffixesplus.utils.ChatUtil;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
@@ -39,7 +40,41 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
         }
         MiniMessage miniMessage = MiniMessage.miniMessage();
 
-        if (args.length >= 1 && player.hasPermission("suffixsplus.command.suffixadmin")) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("notification") && plugin.getConfig().getBoolean("suffix.notification", true)) {
+
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+
+                try {
+                    String offOrOn = "<#FF0000><bold>OFF</bold>";
+
+                    boolean notification = false;
+
+                    if (!plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName()).getNotifications()) {
+                        notification = true;
+                        offOrOn = "<#00FF00><bold>ON</bold>";
+                    }
+
+                    plugin.getDatabase().updateNotification(player.getUniqueId(), notification);
+
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("<#00FF00>Notifications turned " + offOrOn + "<#00FF00>!"));
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    player.sendMessage(ChatColor.RED + "There was an error trying to connect to the database, please try again later.");
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                    throw new RuntimeException(e);
+                }
+            });
+
+            return true;
+        }
+
+        if (!player.hasPermission("suffixsplus.command.suffixadmin")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to run this command!");
+            return false;
+        }
+
+        if (args.length >= 1) {
 
             String action = args[0];
 
@@ -214,7 +249,7 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     return true;
 
                 default:
-                    player.sendMessage("Unknown subcommand. Usage: /tempsuffix <add|remove|check> <suffix> [duration (in seconds)]");
+                    player.sendMessage("Unknown subcommand. Usage: /suffix <add|remove|clear|info|help|notification>");
                     return false;
             }
         }
@@ -240,6 +275,7 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
             if (args.length == 1) {
                 completions.add("add");
                 completions.add("remove");
+                if (plugin.getConfig().getBoolean("suffix.notification", true)) completions.add("notification");
                 completions.add("clear");
                 completions.add("help");
                 completions.add("info");
@@ -269,6 +305,8 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     }
                 }
             }
+        } else {
+            if (args.length == 1 && plugin.getConfig().getBoolean("suffix.notification", true)) completions.add("notification");
         }
 
         String lastArg = args[args.length - 1];

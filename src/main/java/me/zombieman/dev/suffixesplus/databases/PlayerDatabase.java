@@ -5,9 +5,15 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
+import me.zombieman.dev.suffixesplus.SuffixesPlus;
+import me.zombieman.dev.suffixesplus.commands.SuffixesCmd;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +24,12 @@ public class PlayerDatabase {
 
     public PlayerDatabase(String jdbcUrl, String username, String password) throws SQLException {
         connectionSource = new JdbcConnectionSource(jdbcUrl, username, password);
+
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("ALTER TABLE playerData ADD COLUMN notifications BOOLEAN NOT NULL DEFAULT FALSE;");
+        } catch (SQLException ignored) {}
+
         TableUtils.createTableIfNotExists(connectionSource, PlayerData.class);
         suffixDataStringDao = DaoManager.createDao(connectionSource, PlayerData.class);
         System.out.println("Database connection established and tables checked.");
@@ -55,6 +67,13 @@ public class PlayerDatabase {
         PlayerData playerData = suffixDataStringDao.queryForId(uuid.toString());
         if (playerData != null) {
             playerData.setCurrentSuffix(suffixes);
+            suffixDataStringDao.update(playerData);
+        }
+    }
+    public void updateNotification(UUID uuid, boolean notification) throws SQLException {
+        PlayerData playerData = suffixDataStringDao.queryForId(uuid.toString());
+        if (playerData != null) {
+            playerData.setNotifications(notification);
             suffixDataStringDao.update(playerData);
         }
     }
@@ -104,4 +123,22 @@ public class PlayerDatabase {
             return null;
         }
     }
+    public void enableNotificationsForAll(SuffixesPlus plugin) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+
+                List<PlayerData> allPlayers = suffixDataStringDao.queryForAll();
+
+                for (PlayerData playerData : allPlayers) {
+                    if (!playerData.getNotifications()) { // Only update if it's false
+                        playerData.setNotifications(true);
+                        suffixDataStringDao.update(playerData);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
 }

@@ -4,6 +4,8 @@ database:
   url: jdbc:mysql://HOST:PORT/NAME
 
 suffix:
+  # If notifications is set to true people can turn off notifications!
+  notification: true
   prefix: "suffix_"
   link: "https://"
   # %suffix% will be replaced with the suffix name

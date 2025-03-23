@@ -133,6 +133,8 @@ public final class SuffixesPlus extends JavaPlugin {
 
                     if (ownedSuffixes == 0) continue;
 
+                    if (!getDatabase().getPlayer(player.getUniqueId(), player.getName()).getNotifications() && getConfig().getBoolean("suffix.notification", true)) continue;
+
                     player.sendMessage(MiniMessage.miniMessage().deserialize("""
                                 <green><strikethrough>                                             </strikethrough>
                                 <green>🌟 Remember to use your suffixes! 🌟
@@ -142,6 +144,13 @@ public final class SuffixesPlus extends JavaPlugin {
                                     .replace("%ownedSuffixes%", String.valueOf(ownedSuffixes)))
                             .hoverEvent(HoverEvent.showText(MiniMessage.miniMessage().deserialize("<green>Click to view suffixes")))
                             .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/suffix")));
+
+                    if (getConfig().getBoolean("suffix.notification", true)) {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize("""
+                                        <gray>/suffix notification (to turn off notifications)""")
+                                .hoverEvent(HoverEvent.showText(MiniMessage.miniMessage().deserialize("<green>Click to turn of suffix notifications")))
+                                .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/suffix notification")));
+                    }
 
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
                 }
