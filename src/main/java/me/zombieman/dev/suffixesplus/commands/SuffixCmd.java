@@ -38,6 +38,7 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             return false;
         }
+
         MiniMessage miniMessage = MiniMessage.miniMessage();
 
         if (args.length >= 1 && args[0].equalsIgnoreCase("notification") && plugin.getConfig().getBoolean("suffix.notification", true)) {
@@ -69,12 +70,7 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (!player.hasPermission("suffixsplus.command.suffixadmin")) {
-            player.sendMessage(ChatColor.RED + "You don't have permission to run this command!");
-            return false;
-        }
-
-        if (args.length >= 1) {
+        if (args.length >= 1 && player.hasPermission("suffixsplus.command.suffixadmin")) {
 
             String action = args[0];
 
