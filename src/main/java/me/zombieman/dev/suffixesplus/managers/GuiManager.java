@@ -272,6 +272,8 @@ public class GuiManager {
             e.printStackTrace();
         }
 
+        if (groupSuffixColor == null) groupSuffixColor = "&7";
+
         // Set the lore using parsed legacy color codes
         meta.lore(List.of(
                 Component.empty(),
