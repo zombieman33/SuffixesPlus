@@ -14,6 +14,9 @@ import org.bukkit.entity.Player;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class LuckPermsHook {
@@ -37,27 +40,71 @@ public class LuckPermsHook {
         Player player = Bukkit.getPlayer(playerUUID);
         if (player == null) return List.of();
 
-        // Get all suffixes from the configuration
         List<String> allSuffixes = getAllSuffixes();
-
         List<String> playerSuffixes = new ArrayList<>();
 
-        for (String suffix : allSuffixes) {
+        String configPrefix = plugin.getConfig().getString("suffix.prefix", "suffix_");
+        String playerName = player.getName(); // Needed for DB check
 
-            suffix = suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
-
+        for (String fullSuffix : allSuffixes) {
+            String suffix = fullSuffix.replace(configPrefix, "");
             String permission = "suffixsplus.suffix." + suffix;
 
-            // Log the permission being checked
-//            Bukkit.getLogger().info("Checking permission: " + permission);
+            boolean hasPermission = player.hasPermission(permission);
 
-            // Check if the player has the permission for this suffix
-            if (player.hasPermission(permission)) {
-                playerSuffixes.add(suffix);
+            boolean hasDatabaseAccess = false;
+            try {
+                hasDatabaseAccess = checkAccessAsync(playerUUID, playerName, configPrefix, fullSuffix).get();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (hasPermission || hasDatabaseAccess) {
+                playerSuffixes.add(fullSuffix);
             }
         }
 
         return playerSuffixes;
+    }
+
+
+    public void checkAccess(UUID playerUUID, String playerName, String configSuffix, String suffix, Consumer<Boolean> callback) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean result = false;
+
+            try {
+                String purchased = plugin.getDatabase().getPlayer(playerUUID, playerName).getPurchased();
+                List<String> allSuffixes = plugin.getSuffixDatabase().getAllSuffixes();
+                String replace = suffix.replace(configSuffix, "");
+
+                if (purchased != null && !allSuffixes.contains(replace) && purchased.equalsIgnoreCase("purchasable")) result = true;
+                if (purchased != null && allSuffixes.contains(replace) && purchased.equalsIgnoreCase("all")) result = true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            boolean finalResult = result;
+            Bukkit.getScheduler().runTask(plugin, () -> callback.accept(finalResult));
+        });
+    }
+
+    public CompletableFuture<Boolean> checkAccessAsync(UUID uuid, String name, String configSuffix, String suffix) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String purchased = plugin.getDatabase().getPlayer(uuid, name).getPurchased();
+                List<String> allSuffixes = plugin.getSuffixDatabase().getAllSuffixes();
+                String replace = suffix.replace(configSuffix, "");
+
+                if (purchased != null && !allSuffixes.contains(replace) && purchased.equalsIgnoreCase("purchasable"))
+                    return true;
+                if (purchased != null && purchased.equalsIgnoreCase("all"))
+                    return true;
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return false;
+        });
     }
 
 
@@ -87,6 +134,11 @@ public class LuckPermsHook {
 
     public String getGroupSuffixColor(String groupName) {
         // Get the LuckPerms group by name
+
+        groupName = groupName.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
+
+        groupName = plugin.getConfig().getString("suffix.prefix", "suffix_") + groupName;
+
         Group group = luckPerms.getGroupManager().getGroup(groupName);
         if (group == null) {
             return null; // No such group found
@@ -173,6 +225,10 @@ public class LuckPermsHook {
 
 
     public void removeSuffix(Player player, String suffix) {
+
+        suffix = suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
+        suffix = plugin.getConfig().getString("suffix.prefix", "suffix_") + suffix;
+
         // Fetch the LuckPerms user object for the player
         User user = luckPerms.getUserManager().getUser(player.getUniqueId());
         if (user == null) {
@@ -184,9 +240,10 @@ public class LuckPermsHook {
         boolean groupRemoved = false;
 
         // Remove the suffix node if the player has it
+        String finalSuffix = suffix;
         Optional<SuffixNode> suffixNodeOptional = user.getNodes(NodeType.SUFFIX).stream()
                 .map(SuffixNode.class::cast)
-                .filter(suffixNode -> suffixNode.getMetaValue().equalsIgnoreCase(suffix))
+                .filter(suffixNode -> suffixNode.getMetaValue().equalsIgnoreCase(finalSuffix))
                 .findFirst();
 
         if (suffixNodeOptional.isPresent()) {
@@ -227,6 +284,11 @@ public class LuckPermsHook {
 
     // Method to check if a player has a group corresponding to the specified suffix
     public boolean hasSuffix(UUID playerUUID, String suffix) {
+
+        suffix = suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
+
+        suffix = plugin.getConfig().getString("suffix.prefix", "suffix_") + suffix;
+
         User user = luckPerms.getUserManager().getUser(playerUUID);
         if (user == null) {
             return false; // User not found
@@ -247,6 +309,10 @@ public class LuckPermsHook {
 
     // Method to add a group to a player
     public void addGroup(UUID playerUUID, String groupName) {
+
+        groupName = groupName.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
+        groupName = plugin.getConfig().getString("suffix.prefix", "suffix_") + groupName;
+
         User user = luckPerms.getUserManager().getUser(playerUUID);
         if (user == null) {
             plugin.getLogger().warning("User not found for UUID: " + playerUUID);

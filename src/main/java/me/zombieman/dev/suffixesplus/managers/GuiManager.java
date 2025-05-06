@@ -17,6 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class GuiManager {
 
@@ -27,6 +28,7 @@ public class GuiManager {
         this.plugin = plugin;
         this.luckPermsHook = luckPermsHook;
     }
+
     private final Map<UUID, Integer> playerPages = new HashMap<>();
 
     public void openSuffixGui(Player player, int page) throws SQLException {
@@ -41,101 +43,82 @@ public class GuiManager {
         int suffixesPerPage = 36;
         int maxPage = (int) Math.ceil((double) allSuffixes.size() / suffixesPerPage);
 
-        // Create a chest inventory with 5 rows (9 slots per row)
         Inventory gui = Bukkit.createInventory(null, 5 * 9, Component.text("Choose Your Suffix (Page " + (page + 1) + "/" + maxPage + ")"));
 
-        // Fill row 5 (slots 36-44) with black stained glass pane
+        // Fill row 5 with black panes
         ItemStack blackPane = createPane();
         for (int i = 36; i <= 44; i++) {
             gui.setItem(i, blackPane);
         }
 
-        // Add player head in the right corner (slot 44)
-        ItemStack playerHead;
-        try {
-            playerHead = createPlayerHead(player, luckPermsHook.getPlayerSuffixes(player.getUniqueId()).size());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            player.sendMessage("An error occurred while fetching your data.");
-            return;
-        }
-        gui.setItem(44, playerHead);
-
-        // Add the "Clear All Suffixes" button in the middle (slot 40)
-        ItemStack clearAllItem = createClearAllButton();
-        gui.setItem(40, clearAllItem);
-
-        // Add the "Random Suffix" button (slot 41)
-        ItemStack randomSuffixItem = createRandomSuffixButton();
-        gui.setItem(41, randomSuffixItem);
-
-        // Add the "Info" button
-        ItemStack infoButton = createInfoButton();
-        gui.setItem(39, infoButton);
-
-
-        // Add suffix items for the current page
-        List<ItemStack> ownedSuffixes = new ArrayList<>();
-        List<ItemStack> notOwnedSuffixes = new ArrayList<>();
-
+        // Async fetch all suffix items
+        List<CompletableFuture<ItemStack>> futures = new ArrayList<>();
         for (String suffix : allSuffixes) {
-            String formattedSuffix = suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), "");
-            String permissionNode = "suffixsplus.suffix." + formattedSuffix.toLowerCase().replaceAll("[^a-zA-Z0-9]", "");
+            futures.add(createSuffixItemAsync(player, suffix));
+        }
 
-            boolean hasPermission = player.hasPermission(permissionNode);
-            ItemStack suffixItem = createSuffixItem(suffix, hasPermission, player);
+        // When all items are ready, place them in GUI
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenRun(() -> {
+            List<ItemStack> owned = new ArrayList<>();
+            List<ItemStack> notOwned = new ArrayList<>();
 
-            if (hasPermission) {
-                ownedSuffixes.add(suffixItem);
-            } else {
-                notOwnedSuffixes.add(suffixItem);
+            for (CompletableFuture<ItemStack> future : futures) {
+                try {
+                    ItemStack item = future.get();
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null && meta.getPersistentDataContainer().get(new NamespacedKey(plugin, "ownsSuffix"), PersistentDataType.BOOLEAN)) {
+                        owned.add(item);
+                    } else {
+                        notOwned.add(item);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        }
 
-        List<ItemStack> allSuffixItems = new ArrayList<>();
-        allSuffixItems.addAll(ownedSuffixes);
-        allSuffixItems.addAll(notOwnedSuffixes);
+            List<ItemStack> allItems = new ArrayList<>();
+            allItems.addAll(owned);
+            allItems.addAll(notOwned);
 
-        // Display suffixes for the current page
-        int startIndex = page * suffixesPerPage;
-        int endIndex = Math.min(startIndex + suffixesPerPage, allSuffixItems.size());
+            int startIndex = page * suffixesPerPage;
+            int endIndex = Math.min(startIndex + suffixesPerPage, allItems.size());
 
-        if (startIndex < 0 || startIndex >= allSuffixItems.size()) {
-            return;
-        }
+            for (int i = startIndex, slot = 0; i < endIndex && slot < 36; i++, slot++) {
+                gui.setItem(slot, allItems.get(i));
+            }
 
-        int guiSize = gui.getSize(); // Assumes gui.getSize() gives the total number of slots
-        for (int i = startIndex, slot = 0; i < endIndex && slot < guiSize; i++, slot++) {
-            gui.setItem(slot, allSuffixItems.get(i));
-        }
+            // Player head
+            try {
+                ItemStack head = createPlayerHead(player, luckPermsHook.getPlayerSuffixes(player.getUniqueId()).size());
+                gui.setItem(43, head);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
 
+            gui.setItem(40, createClearAllButton());
+            gui.setItem(41, createRandomSuffixButton());
+            gui.setItem(39, createInfoButton());
 
-        if (page < maxPage - 1) {
-            ItemStack nextButton = createNavigationButton("Next", Material.ARROW);
-            gui.setItem(44, nextButton);
-            gui.setItem(43, playerHead);
-        }
+            // Navigation
+            if (page < maxPage - 1) gui.setItem(44, createNavigationButton("Next", Material.ARROW));
+            if (page > 0) gui.setItem(36, createNavigationButton("Previous", Material.ARROW));
 
-        int slot = 36;
+            try {
+                if (player.hasPermission("suffixsplus.gui.preview")) {
+                    ItemStack preview = createPreview(player);
+                    gui.setItem(page > 0 ? 37 : 36, preview);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
 
-        if (page > 0) {
-            slot = 37;
-        }
-
-        if (player.hasPermission("suffixsplus.gui.preview")) {
-            ItemStack preview = createPreview(player);
-            gui.setItem(slot, preview);
-        }
-
-        if (page > 0) {
-            ItemStack prevButton = createNavigationButton("Previous", Material.ARROW);
-            gui.setItem(36, prevButton);
-        }
-
-        // Open the GUI for the player
-        setCurrentPage(player, page);
-        player.openInventory(gui);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                setCurrentPage(player, page);
+                player.openInventory(gui);
+            });
+        });
     }
+
 
     // Helper method to create navigation buttons
     private ItemStack createNavigationButton(String label, Material material) {
@@ -183,6 +166,31 @@ public class GuiManager {
         playerHead.setItemMeta(meta);
         return playerHead;
     }
+
+    public CompletableFuture<ItemStack> createSuffixItemAsync(Player player, String suffix) {
+        String configSuffix = plugin.getConfig().getString("suffix.prefix", "suffix_");
+        String formattedSuffix = suffix.replace(configSuffix, "");
+
+        return plugin.getLuckPermsHook()
+                .checkAccessAsync(player.getUniqueId(), player.getName(), configSuffix, formattedSuffix)
+                .thenApply(hasAccess -> {
+                    String permissionNode = "suffixsplus.suffix." + formattedSuffix.toLowerCase().replaceAll("[^a-zA-Z0-9]", "");
+                    if (!hasAccess && player.hasPermission(permissionNode)) {
+                        hasAccess = true;
+                    }
+
+                    ItemStack item = createSuffixItem(suffix, hasAccess, player);
+
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null) {
+                        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "ownsSuffix"), PersistentDataType.BOOLEAN, hasAccess);
+                        item.setItemMeta(meta);
+                    }
+
+                    return item;
+                });
+    }
+
 
     private ItemStack createPreview(Player player) throws SQLException {
         // Create the player's head item

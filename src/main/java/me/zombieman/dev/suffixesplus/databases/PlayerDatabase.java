@@ -27,6 +27,7 @@ public class PlayerDatabase {
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
              Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("ALTER TABLE playerData ADD COLUMN purchased VARCHAR(255) DEFAULT NULL;");
             stmt.executeUpdate("ALTER TABLE playerData ADD COLUMN notifications BOOLEAN NOT NULL DEFAULT FALSE;");
         } catch (SQLException ignored) {}
 
@@ -52,6 +53,13 @@ public class PlayerDatabase {
         PlayerData playerData = suffixDataStringDao.queryForId(uuid);
         if (playerData != null) {
             playerData.setUsername(username);
+            suffixDataStringDao.update(playerData);
+        }
+    }
+    public void updatePurchasable(UUID uuid, String purchasable) throws SQLException {
+        PlayerData playerData = suffixDataStringDao.queryForId(uuid.toString());
+        if (playerData != null) {
+            playerData.setPurchased(purchasable);
             suffixDataStringDao.update(playerData);
         }
     }

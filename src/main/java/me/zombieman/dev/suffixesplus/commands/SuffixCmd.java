@@ -17,7 +17,7 @@ import org.bukkit.entity.Player;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class SuffixCmd implements CommandExecutor, TabCompleter {
@@ -235,6 +235,7 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.0f);
 
                     return true;
+
                 case "support":
                     player.sendMessage(miniMessage.deserialize("<#7289da><strikethrough>                                         </strikethrough>"));
                     player.sendMessage(miniMessage.deserialize("<#7289da><bold>Click Here To Get Support!</bold>")
@@ -267,42 +268,45 @@ public class SuffixCmd implements CommandExecutor, TabCompleter {
 
         Player player = (Player) sender;
 
-        if (player.hasPermission("suffixsplus.command.suffixadmin")) {
-            if (args.length == 1) {
-                completions.add("add");
-                completions.add("remove");
-                if (plugin.getConfig().getBoolean("suffix.notification", true)) completions.add("notification");
-                completions.add("clear");
-                completions.add("help");
-                completions.add("info");
-                completions.add("support");
-            } else if (args.length == 2) {
-                if (args[0].equalsIgnoreCase("add")) {
-                    for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
-                        try {
-                            if (!plugin.getSuffixDatabase().getAllSuffixes().contains(suffix)) {
-                                completions.add(suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), ""));
-                            }
-                        } catch (SQLException e) {
-                            completions.add("Error connecting to database!");
-                            throw new RuntimeException(e);
-                        }
-                    }
-                } else if (args[0].equalsIgnoreCase("remove")) {
+        if (!player.hasPermission("suffixsplus.command.suffixadmin")) {
+            if (args.length == 1 && plugin.getConfig().getBoolean("suffix.notification", true)) completions.add("notification");
+
+            String lastArg = args[args.length - 1];
+            return completions.stream().filter(s -> s.startsWith(lastArg)).collect(Collectors.toList());
+        }
+
+        if (args.length == 1) {
+            completions.add("add");
+            completions.add("remove");
+            if (plugin.getConfig().getBoolean("suffix.notification", true)) completions.add("notification");
+            completions.add("clear");
+            completions.add("help");
+            completions.add("info");
+            completions.add("support");
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("add")) {
+                for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
                     try {
-                        completions.addAll(plugin.getSuffixDatabase().getAllSuffixes());
+                        if (!plugin.getSuffixDatabase().getAllSuffixes().contains(suffix)) {
+                            completions.add(suffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), ""));
+                        }
                     } catch (SQLException e) {
                         completions.add("Error connecting to database!");
                         throw new RuntimeException(e);
                     }
-                } else if (args[0].equalsIgnoreCase("help")) {
-                    for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
-                        completions.add(suffix.replace("suffix_", ""));
-                    }
+                }
+            } else if (args[0].equalsIgnoreCase("remove")) {
+                try {
+                    completions.addAll(plugin.getSuffixDatabase().getAllSuffixes());
+                } catch (SQLException e) {
+                    completions.add("Error connecting to database!");
+                    throw new RuntimeException(e);
+                }
+            } else if (args[0].equalsIgnoreCase("help")) {
+                for (String suffix : plugin.getLuckPermsHook().getAllSuffixes()) {
+                    completions.add(suffix.replace("suffix_", ""));
                 }
             }
-        } else {
-            if (args.length == 1 && plugin.getConfig().getBoolean("suffix.notification", true)) completions.add("notification");
         }
 
         String lastArg = args[args.length - 1];

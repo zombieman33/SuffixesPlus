@@ -1,9 +1,11 @@
 package me.zombieman.dev.suffixesplus;
 
+import me.zombieman.dev.suffixesplus.commands.SuffixAdminCmd;
 import me.zombieman.dev.suffixesplus.commands.SuffixCmd;
 import me.zombieman.dev.suffixesplus.commands.SuffixesCmd;
 import me.zombieman.dev.suffixesplus.databases.PlayerDatabase;
 import me.zombieman.dev.suffixesplus.databases.SuffixDatabase;
+import me.zombieman.dev.suffixesplus.managers.PurchasedManager;
 import me.zombieman.dev.suffixesplus.managers.TempSuffixManager;
 import me.zombieman.dev.suffixesplus.hooks.LuckPermsHook;
 import me.zombieman.dev.suffixesplus.listeners.InventoryClickListener;
@@ -29,6 +31,7 @@ public final class SuffixesPlus extends JavaPlugin {
     private PlayerDatabase database;
     private SuffixDatabase suffixDatabase;
     private TempSuffixManager tempSuffixManager;
+    private PurchasedManager purchasedManager;
     public GuiManager guiManager;
     public LuckPermsAPI luckPermsAPI;
     @Override
@@ -80,12 +83,14 @@ public final class SuffixesPlus extends JavaPlugin {
 
         guiManager = new GuiManager(this, luckPermsHook);
         tempSuffixManager = new TempSuffixManager(this);
+        purchasedManager = new PurchasedManager(this);
 
         new PlayerListener(this);
         new InventoryClickListener(this, luckPermsHook);
 
         getCommand("suffix").setExecutor(new SuffixCmd(this));
         getCommand("suffixes").setExecutor(new SuffixesCmd(this));
+        getCommand("suffixadmin").setExecutor(new SuffixAdminCmd(this));
 
         checkIfPlayerHasSuffix();
     }
@@ -107,6 +112,9 @@ public final class SuffixesPlus extends JavaPlugin {
     public SuffixDatabase getSuffixDatabase() {
         return suffixDatabase;
     }
+    public PurchasedManager getPurchasedManager() {
+        return purchasedManager;
+    }
 
     public void checkIfPlayerHasSuffix() {
 
@@ -122,14 +130,14 @@ public final class SuffixesPlus extends JavaPlugin {
 
                     if (!currentSuffix.equalsIgnoreCase("n/a")) continue;
 
-                    int ownedSuffixes = 0;
+                    int ownedSuffixes = getLuckPermsHook().getPlayerSuffixes(player.getUniqueId()).size();
 
-                    for (String suffix : getLuckPermsHook().getAllSuffixes()) {
-                        suffix = suffix.replace(getConfig().getString("suffix.prefix", "suffix_"), "");
-                        boolean hasPermission = player.hasPermission("suffixsplus.suffix." + suffix);
-
-                        if (hasPermission) ownedSuffixes++;
-                    }
+//                    for (String suffix : getLuckPermsHook().getAllSuffixes()) {
+//                        suffix = suffix.replace(getConfig().getString("suffix.prefix", "suffix_"), "");
+//                        boolean hasPermission = player.hasPermission("suffixsplus.suffix." + suffix);
+//
+//                        if (hasPermission) ownedSuffixes++;
+//                    }
 
                     if (ownedSuffixes == 0) continue;
 

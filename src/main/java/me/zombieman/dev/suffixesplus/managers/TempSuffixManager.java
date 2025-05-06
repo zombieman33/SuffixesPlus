@@ -1,47 +1,51 @@
 package me.zombieman.dev.suffixesplus.managers;
 
-
 import me.zombieman.dev.suffixesplus.SuffixesPlus;
+import me.zombieman.dev.suffixesplus.hooks.LuckPermsHook;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.sql.SQLException;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.CompletableFuture;
 
 public class TempSuffixManager {
 
     private final SuffixesPlus plugin;
+    private final LuckPermsHook luckPermsHook;
 
     public TempSuffixManager(SuffixesPlus plugin) {
         this.plugin = plugin;
+        this.luckPermsHook = plugin.getLuckPermsHook();
         start();
     }
 
     public void start() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, new Runnable() {
-            @Override
-            public void run() {
-
-                try {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                CompletableFuture.runAsync(() -> {
+                    try {
                         String currentSuffix = plugin.getDatabase().getPlayer(player.getUniqueId(), player.getName()).getCurrentSuffix();
 
-                        if (currentSuffix.equalsIgnoreCase("n/a")) continue;
+                        if (currentSuffix.equalsIgnoreCase("n/a")) return;
 
-                        if (!player.hasPermission("suffixsplus.suffix." + currentSuffix.replace(plugin.getConfig().getString("suffix.prefix", "suffix_"), ""))) {
+                        String configSuffix = plugin.getConfig().getString("suffix.prefix", "suffix_");
+                        String suffix = currentSuffix.replace(configSuffix, "");
+
+                        luckPermsHook.checkAccessAsync(player.getUniqueId(), player.getName(), configSuffix, currentSuffix).thenAccept(hasAccess -> {
+                            if (hasAccess || player.hasPermission("suffixsplus.suffix." + suffix)) return;
+
                             Bukkit.getScheduler().runTask(plugin, () -> {
-                                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player.getUniqueId() + " parent remove " + currentSuffix);
+                                luckPermsHook.removeSuffix(player, suffix);
                             });
-                            plugin.getDatabase().updateSuffixes(player, "n/a");
-                        }
 
+                        });
+
+                    } catch (SQLException e) {
+                        e.printStackTrace();
                     }
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+                });
             }
-        }, 0L, 20 * 60L);
+
+        }, 0L, 20 * 60L); // Every minute
     }
-
-
 }

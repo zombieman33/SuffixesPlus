@@ -15,6 +15,8 @@ public class PlayerData {
     private String suffix;
     @DatabaseField(defaultValue = "true")
     private boolean notifications;
+    @DatabaseField(defaultValue = "null")
+    private String purchased;
 
     public PlayerData() {}
 
@@ -40,6 +42,14 @@ public class PlayerData {
 
     public void setCurrentSuffix(String suffix) {
         this.suffix = suffix;
+    }
+
+    public String getPurchased() {
+        return purchased;
+    }
+
+    public void setPurchased(String purchased) {
+        this.purchased = purchased;
     }
 
     public boolean getNotifications() {

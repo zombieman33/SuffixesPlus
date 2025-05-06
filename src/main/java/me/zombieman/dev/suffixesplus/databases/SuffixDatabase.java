@@ -34,29 +34,24 @@ public class SuffixDatabase {
         }
     }
 
-    // Add a new non-purchasable suffix
     public void addSuffix(String suffix) throws SQLException {
         SuffixData suffixData = new SuffixData();
         suffixData.setSuffix(suffix);
         suffixDao.create(suffixData);
     }
 
-    // Remove a non-purchasable suffix
     public void removeSuffix(String suffix) throws SQLException {
         suffixDao.deleteById(suffix);
     }
 
-    // Clear all non-purchasable suffixes
     public void clearSuffixes() throws SQLException {
         TableUtils.clearTable(connectionSource, SuffixData.class);
     }
 
-    // Check if a suffix exists
     public boolean suffixDoesNotExists(String suffix) throws SQLException {
         return suffixDao.queryForId(suffix) == null;
     }
 
-    // Get all non-purchasable suffixes
     public List<String> getAllSuffixes() throws SQLException {
         List<SuffixData> allSuffixes = suffixDao.queryForAll();
         List<String> suffixList = new ArrayList<>();

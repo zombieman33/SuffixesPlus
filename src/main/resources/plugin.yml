@@ -6,3 +6,5 @@ authors: [zombieman]
 commands:
   suffix:
   suffixes:
+  suffixadmin:
+    permission: suffixsplus.command.suffixadmin
