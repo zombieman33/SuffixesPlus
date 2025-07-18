@@ -2,16 +2,17 @@ package me.zombieman.dev.suffixesplus.databases;
 
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
-import com.j256.ormlite.jdbc.JdbcConnectionSource;
+import com.j256.ormlite.jdbc.DataSourceConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import me.zombieman.dev.suffixesplus.SuffixesPlus;
 import me.zombieman.dev.suffixesplus.commands.SuffixesCmd;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -20,28 +21,51 @@ import java.util.UUID;
 
 public class PlayerDatabase {
     private final Dao<PlayerData, String> suffixDataStringDao;
+    private final HikariDataSource hikari;
     private final ConnectionSource connectionSource;
 
     public PlayerDatabase(String jdbcUrl, String username, String password) throws SQLException {
-        connectionSource = new JdbcConnectionSource(jdbcUrl, username, password);
+        // HikariCP
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(jdbcUrl);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setMaximumPoolSize(10);
+        config.setIdleTimeout(600_000); // 10 minutes
+        config.setMaxLifetime(1_800_000); // 30 minutes
+        config.setConnectionTimeout(30_000); // 30 seconds
+        config.setConnectionTestQuery("SELECT 1");
+        config.setPoolName("SuffixesPlusHikariPool-PlayerDatabase");
 
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+        hikari = new HikariDataSource(config);
+
+        connectionSource = new DataSourceConnectionSource(hikari, jdbcUrl);
+
+        // Create table if not exists
+        TableUtils.createTableIfNotExists(connectionSource, PlayerData.class);
+
+        // Run schema updates safely
+        try (Connection conn = hikari.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("ALTER TABLE playerData ADD COLUMN purchased VARCHAR(255) DEFAULT NULL;");
             stmt.executeUpdate("ALTER TABLE playerData ADD COLUMN notifications BOOLEAN NOT NULL DEFAULT FALSE;");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            // Ignore if columns already exist
+        }
 
-        TableUtils.createTableIfNotExists(connectionSource, PlayerData.class);
         suffixDataStringDao = DaoManager.createDao(connectionSource, PlayerData.class);
-        System.out.println("Database connection established and tables checked.");
+        System.out.println("Database connection established with HikariCP and tables checked.");
     }
 
     public void close() {
         try {
-            if (connectionSource != null && !connectionSource.isOpen("default")) {
+            if (connectionSource != null) {
                 connectionSource.close();
-                System.out.println("Database connection closed.");
             }
+            if (hikari != null) {
+                hikari.close();
+            }
+            System.out.println("Database connection closed.");
         } catch (Exception e) {
             System.out.println("Failed to close database connection: " + e.getMessage());
             e.printStackTrace();
@@ -86,7 +110,6 @@ public class PlayerDatabase {
         }
     }
 
-    // Get the linked account for the player, create a new one if it doesn't exist
     public PlayerData getPlayer(UUID uuid, String name) throws SQLException {
         PlayerData playerData = suffixDataStringDao.queryForId(uuid.toString());
 
@@ -100,18 +123,16 @@ public class PlayerDatabase {
 
         return playerData;
     }
+
     public String getUuidByUsername(String username) throws SQLException {
         PlayerData playerData = suffixDataStringDao.queryBuilder()
                 .where()
                 .eq("username", username)
                 .queryForFirst();
 
-        if (playerData != null) {
-            return playerData.getUuid();
-        } else {
-            return null;
-        }
+        return playerData != null ? playerData.getUuid() : null;
     }
+
     public List<String> getAllUsernames() throws SQLException {
         List<String> usernames = new ArrayList<>();
 
@@ -123,22 +144,19 @@ public class PlayerDatabase {
 
         return usernames;
     }
+
     public String getUsernameByUUID(UUID uuid) throws SQLException {
         PlayerData playerData = suffixDataStringDao.queryForId(uuid.toString());
-        if (playerData != null) {
-            return playerData.getUsername();
-        } else {
-            return null;
-        }
+        return playerData != null ? playerData.getUsername() : null;
     }
+
     public void enableNotificationsForAll(SuffixesPlus plugin) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-
                 List<PlayerData> allPlayers = suffixDataStringDao.queryForAll();
 
                 for (PlayerData playerData : allPlayers) {
-                    if (!playerData.getNotifications()) { // Only update if it's false
+                    if (!playerData.getNotifications()) {
                         playerData.setNotifications(true);
                         suffixDataStringDao.update(playerData);
                     }
@@ -148,5 +166,4 @@ public class PlayerDatabase {
             }
         });
     }
-
 }

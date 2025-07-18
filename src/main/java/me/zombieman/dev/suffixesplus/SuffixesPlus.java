@@ -97,7 +97,10 @@ public final class SuffixesPlus extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        getDatabase().close();
+        if (getDatabase() != null) {
+            getDatabase().close();
+        }
+
         getSuffixDatabase().close();
     }
 
