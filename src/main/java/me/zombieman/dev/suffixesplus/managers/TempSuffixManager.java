@@ -46,6 +46,6 @@ public class TempSuffixManager {
                 });
             }
 
-        }, 0L, 20 * 60L); // Every minute
+        }, 0L, 20 * 60L);
     }
 }
